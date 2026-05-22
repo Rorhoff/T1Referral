@@ -24,7 +24,7 @@ type Props = {
 };
 
 export default function CreateSeekerPostModal({ onClose, onCreated }: Props) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [step, setStep] = useState<Step>('form');
   const [createdPostId, setCreatedPostId] = useState<string | null>(null);
   const [premiumPrice, setPremiumPrice] = useState<number | null>(null);
@@ -32,13 +32,13 @@ export default function CreateSeekerPostModal({ onClose, onCreated }: Props) {
 
   const [form, setForm] = useState({
     headline: '',
-    about: '',
-    desired_role: '',
-    desired_location: '',
+    about: profile?.bio || '',
+    desired_role: profile?.role || '',
+    desired_location: profile?.location || '',
     open_to_remote: false,
     field_of_work: '',
-    skills: '',
-    experience_years: '',
+    skills: (profile?.skills || []).join(', '),
+    experience_years: profile?.years_experience ? String(profile.years_experience) : '',
     resume_url: '',
     portfolio_url: '',
     availability: 'immediately',
