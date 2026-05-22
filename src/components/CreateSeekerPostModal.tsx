@@ -116,7 +116,7 @@ export default function CreateSeekerPostModal({ onClose, onCreated }: Props) {
       const json = await res.json();
       if (!res.ok || !json.url) throw new Error(json.error ?? 'Failed to create checkout session');
 
-      window.location.href = json.url;
+      window.open(json.url, '_blank');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to start checkout');
       setSubmitting(false);
