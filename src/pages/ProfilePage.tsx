@@ -4,8 +4,9 @@ import { useAuth } from '../contexts/AuthContext';
 import {
   CreditCard as Edit2, Save, X, MapPin, Briefcase, Link, DollarSign,
   UserPlus, UserCheck, MessageSquare, Building, Tag, Wifi, ExternalLink,
-  Star, Camera, Loader,
+  Star, Camera, Loader, Trash2, Crown,
 } from 'lucide-react';
+import { getCurrentPremiumPriceCents } from '../lib/supabase';
 
 type Props = {
   userId: string;
@@ -26,6 +27,8 @@ export default function ProfilePage({ userId, onMessage }: Props) {
   const [saveError, setSaveError] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
+  const [upgradingPostId, setUpgradingPostId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
@@ -158,6 +161,63 @@ export default function ProfilePage({ userId, onMessage }: Props) {
     const hrs = Math.floor(mins / 60);
     if (hrs < 24) return `${hrs}h ago`;
     return `${Math.floor(hrs / 24)}d ago`;
+  }
+
+  async function handleDeleteSeekerPost(postId: string) {
+    if (!confirm('Are you sure you want to delete this seeker post? This cannot be undone.')) return;
+    setDeletingPostId(postId);
+    try {
+      const { error } = await supabase.from('seeker_posts').delete().eq('id', postId).eq('author_id', user!.id);
+      if (error) throw error;
+      setSeekerPosts(prev => prev.filter(p => p.id !== postId));
+    } catch (err) {
+      console.error('Failed to delete seeker post:', err);
+    } finally {
+      setDeletingPostId(null);
+    }
+  }
+
+  async function handleUpgradeToPremium(postId: string) {
+    setUpgradingPostId(postId);
+    try {
+      const priceCents = await getCurrentPremiumPriceCents();
+      const { count } = await supabase
+        .from('premium_purchases')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user!.id);
+      const purchaseNumber = (count ?? 0) + 1;
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const origin = window.location.origin;
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'Apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({
+            seeker_post_id: postId,
+            amount_cents: priceCents,
+            purchase_number: purchaseNumber,
+            success_url: `${origin}/?featured=1`,
+            cancel_url: `${origin}/`,
+          }),
+        }
+      );
+
+      const json = await res.json();
+      if (!res.ok || !json.url) throw new Error(json.error ?? 'Failed to create checkout');
+      window.open(json.url, '_blank');
+    } catch (err) {
+      console.error('Failed to upgrade post:', err);
+    } finally {
+      setUpgradingPostId(null);
+    }
   }
 
   if (loading) {
@@ -398,6 +458,37 @@ export default function ProfilePage({ userId, onMessage }: Props) {
                             {skill}
                           </span>
                         ))}
+                      </div>
+                    )}
+
+                    {isOwn && (
+                      <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-800">
+                        {!isPremiumActive && (
+                          <button
+                            onClick={() => handleUpgradeToPremium(post.id)}
+                            disabled={upgradingPostId === post.id}
+                            className="flex items-center gap-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 font-medium rounded-xl px-4 py-2 text-sm transition disabled:opacity-50"
+                          >
+                            {upgradingPostId === post.id ? (
+                              <Loader size={13} className="animate-spin" />
+                            ) : (
+                              <Crown size={13} />
+                            )}
+                            Upgrade to Premium
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDeleteSeekerPost(post.id)}
+                          disabled={deletingPostId === post.id}
+                          className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 font-medium rounded-xl px-4 py-2 text-sm transition disabled:opacity-50 ml-auto"
+                        >
+                          {deletingPostId === post.id ? (
+                            <Loader size={13} className="animate-spin" />
+                          ) : (
+                            <Trash2 size={13} />
+                          )}
+                          Delete
+                        </button>
                       </div>
                     )}
                   </div>
