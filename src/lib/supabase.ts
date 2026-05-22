@@ -17,6 +17,7 @@ export type Profile = {
   linkedin_url: string;
   years_experience: number;
   skills: string[];
+  is_suspended: boolean;
   created_at: string;
   updated_at: string;
 };

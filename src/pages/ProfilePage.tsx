@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase, Profile, Post, Connection, SeekerPost, AVAILABILITY_LABELS } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  CreditCard as Edit2, Save, X, MapPin, Briefcase, Link,
+  CreditCard as Edit2, Save, X, MapPin, Briefcase, Link, ShieldBan,
   UserPlus, UserCheck, MessageSquare, Building, Tag, Wifi, ExternalLink,
   Star, Camera, Loader, Trash2, Crown,
 } from 'lucide-react';
@@ -29,6 +29,8 @@ export default function ProfilePage({ userId, onMessage }: Props) {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   const [upgradingPostId, setUpgradingPostId] = useState<string | null>(null);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [blockLoading, setBlockLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
@@ -49,7 +51,7 @@ export default function ProfilePage({ userId, onMessage }: Props) {
 
   async function loadProfile() {
     setLoading(true);
-    const [{ data: p }, { data: userPosts }, { data: userSeekerPosts }, { data: conn }] = await Promise.all([
+    const [{ data: p }, { data: userPosts }, { data: userSeekerPosts }, { data: conn }, { data: blockData }] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
       supabase.from('posts').select('*').eq('author_id', userId).order('created_at', { ascending: false }),
       supabase.from('seeker_posts').select('*').eq('author_id', userId).order('created_at', { ascending: false }),
@@ -59,12 +61,16 @@ export default function ProfilePage({ userId, onMessage }: Props) {
             .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`)
             .maybeSingle()
         : Promise.resolve({ data: null }),
+      user && !isOwn
+        ? supabase.from('user_blocks').select('id').eq('blocker_id', user.id).eq('blocked_id', userId).maybeSingle()
+        : Promise.resolve({ data: null }),
     ]);
 
     setProfile(p);
     setPosts(userPosts || []);
     setSeekerPosts(userSeekerPosts || []);
     setConnection(conn);
+    setIsBlocked(!!blockData);
 
     if (p) {
       setForm({
@@ -151,6 +157,23 @@ export default function ProfilePage({ userId, onMessage }: Props) {
     }
     await loadProfile();
     setActionLoading(false);
+  }
+
+  async function handleBlock() {
+    if (!user) return;
+    setBlockLoading(true);
+    if (isBlocked) {
+      await supabase.from('user_blocks').delete().eq('blocker_id', user.id).eq('blocked_id', userId);
+      setIsBlocked(false);
+    } else {
+      if (!confirm('Block this user? They will not be notified, but you will no longer see their content.')) {
+        setBlockLoading(false);
+        return;
+      }
+      await supabase.from('user_blocks').insert({ blocker_id: user.id, blocked_id: userId });
+      setIsBlocked(true);
+    }
+    setBlockLoading(false);
   }
 
   function timeAgo(date: string) {
@@ -342,6 +365,19 @@ export default function ProfilePage({ userId, onMessage }: Props) {
                       Connect
                     </button>
                   )}
+                  <button
+                    onClick={handleBlock}
+                    disabled={blockLoading}
+                    className={`flex items-center gap-2 font-medium rounded-xl px-3 py-2 text-sm transition disabled:opacity-50 ${
+                      isBlocked
+                        ? 'bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20'
+                        : 'bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-500 hover:text-red-400'
+                    }`}
+                    title={isBlocked ? 'Unblock user' : 'Block user'}
+                  >
+                    <ShieldBan size={14} />
+                    {isBlocked ? 'Blocked' : 'Block'}
+                  </button>
                 </>
               )}
             </div>

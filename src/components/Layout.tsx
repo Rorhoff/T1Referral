@@ -2,7 +2,7 @@ import { ReactNode, useState } from 'react';
 import { Briefcase, Users, MessageSquare, User, LogOut, Bell, Menu, X, TrendingUp } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
-type Page = 'feed' | 'network' | 'messages' | 'profile';
+type Page = 'feed' | 'network' | 'messages' | 'profile' | 'terms' | 'privacy';
 
 type Props = {
   children: ReactNode;
@@ -133,6 +133,30 @@ export default function Layout({ children, currentPage, onNavigate }: Props) {
         <div className="max-w-6xl mx-auto px-4 py-8">
           {children}
         </div>
+
+        {/* Footer */}
+        <footer className="border-t border-gray-800 mt-8 pb-24 md:pb-8">
+          <div className="max-w-6xl mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p className="text-gray-600 text-xs">&copy; 2026 RedA1, LLC dba T1Referral. All rights reserved.</p>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => onNavigate('terms')}
+                className="text-gray-500 hover:text-gray-300 text-xs transition"
+              >
+                Terms of Service
+              </button>
+              <button
+                onClick={() => onNavigate('privacy')}
+                className="text-gray-500 hover:text-gray-300 text-xs transition"
+              >
+                Privacy Policy
+              </button>
+              <a href="mailto:legal@RedA1.com" className="text-gray-500 hover:text-gray-300 text-xs transition">
+                Contact
+              </a>
+            </div>
+          </div>
+        </footer>
       </main>
 
       {/* Bottom mobile nav */}

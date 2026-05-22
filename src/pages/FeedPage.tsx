@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase, Post, Profile, SeekerPost, AVAILABILITY_LABELS } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  Plus, Briefcase, MapPin, ExternalLink,
+  Plus, Briefcase, MapPin, ExternalLink, MessageSquare,
   Wifi, X, ChevronDown, Search, Tag, Building, Star,
   User, Filter, ChevronRight
 } from 'lucide-react';
@@ -13,6 +13,7 @@ type FeedTab = 'openings' | 'seekers';
 
 type Props = {
   onViewProfile: (userId: string) => void;
+  onMessage: (userId: string) => void;
 };
 
 const US_STATES = [
@@ -32,7 +33,7 @@ const FIELDS_OF_WORK = [
   'Healthcare','Education','Real Estate','Consulting','Research','IT','Support','Other',
 ];
 
-export default function FeedPage({ onViewProfile }: Props) {
+export default function FeedPage({ onViewProfile, onMessage }: Props) {
   const { user } = useAuth();
   const [tab, setTab] = useState<FeedTab>('openings');
   const [posts, setPosts] = useState<(Post & { profiles: Profile })[]>([]);
@@ -246,7 +247,7 @@ export default function FeedPage({ onViewProfile }: Props) {
         ) : (
           <div className="space-y-4">
             {filteredJobs.map(post => (
-              <JobPostCard key={post.id} post={post} currentUserId={user?.id} onViewProfile={onViewProfile} onDeleted={fetchAll} />
+              <JobPostCard key={post.id} post={post} currentUserId={user?.id} onViewProfile={onViewProfile} onMessage={onMessage} onDeleted={fetchAll} />
             ))}
           </div>
         )
@@ -271,11 +272,12 @@ export default function FeedPage({ onViewProfile }: Props) {
 // ─── Job Post Card ────────────────────────────────────────────────────────────
 
 function JobPostCard({
-  post, currentUserId, onViewProfile, onDeleted
+  post, currentUserId, onViewProfile, onMessage, onDeleted
 }: {
   post: Post & { profiles: Profile };
   currentUserId?: string;
   onViewProfile: (id: string) => void;
+  onMessage: (id: string) => void;
   onDeleted: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -345,11 +347,18 @@ function JobPostCard({
           </div>
         )}
 
-        {post.job_url && (
-          <a href={post.job_url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 hover:border-blue-500/40 text-blue-400 font-medium rounded-xl py-2.5 text-sm transition-all">
-            <ExternalLink size={14} />View Job Posting
-          </a>
-        )}
+        <div className="flex gap-2">
+          {post.job_url && (
+            <a href={post.job_url} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center gap-2 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 hover:border-blue-500/40 text-blue-400 font-medium rounded-xl py-2.5 text-sm transition-all">
+              <ExternalLink size={14} />View Job Posting
+            </a>
+          )}
+          {currentUserId && currentUserId !== post.author_id && (
+            <button onClick={() => onMessage(post.author_id)} className="flex-1 flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium rounded-xl py-2.5 text-sm transition">
+              <MessageSquare size={14} />Message
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
