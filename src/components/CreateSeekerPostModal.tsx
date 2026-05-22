@@ -6,7 +6,7 @@ import { X, Wifi, Star, ChevronRight } from 'lucide-react';
 const FIELDS_OF_WORK = [
   'Engineering','Design','Product','Marketing','Sales','Finance','Operations',
   'HR / People','Legal','Data / Analytics','DevOps / Infrastructure','Customer Success',
-  'Healthcare','Education','Real Estate','Consulting','Research','Other',
+  'Healthcare','Education','Real Estate','Consulting','Research','IT','Support','Other',
 ];
 
 const AVAILABILITY_OPTIONS = [
