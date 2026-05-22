@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase, Profile, Post, Connection, SeekerPost, AVAILABILITY_LABELS } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  CreditCard as Edit2, Save, X, MapPin, Briefcase, Link, DollarSign,
+  CreditCard as Edit2, Save, X, MapPin, Briefcase, Link,
   UserPlus, UserCheck, MessageSquare, Building, Tag, Wifi, ExternalLink,
   Star, Camera, Loader, Trash2, Crown,
 } from 'lucide-react';
@@ -539,11 +539,11 @@ export default function ProfilePage({ userId, onMessage }: Props) {
                       <Wifi size={11} /> Remote
                     </span>
                   )}
-                  {post.has_bonus && (
-                    <span className="flex items-center gap-1.5 text-xs text-amber-400 bg-amber-500/10 px-2.5 py-1.5 rounded-lg font-medium">
-                      <DollarSign size={11} /> {post.referral_bonus || 'Bonus'}
+                  {post.required_skills?.slice(0, 5).map(skill => (
+                    <span key={skill} className="text-xs text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2.5 py-1.5 rounded-lg">
+                      {skill}
                     </span>
-                  )}
+                  ))}
                 </div>
 
                 {post.tags && post.tags.length > 0 && (

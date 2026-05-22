@@ -33,6 +33,7 @@ export type Post = {
   location: string;
   is_remote: boolean;
   tags: string[];
+  required_skills: string[];
   created_at: string;
   updated_at: string;
   profiles?: Profile;

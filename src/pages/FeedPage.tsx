@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase, Post, Profile, SeekerPost, AVAILABILITY_LABELS } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  Plus, Briefcase, MapPin, DollarSign, ExternalLink,
+  Plus, Briefcase, MapPin, ExternalLink,
   Wifi, X, ChevronDown, Search, Tag, Building, Star,
   User, Filter, ChevronRight
 } from 'lucide-react';
@@ -334,7 +334,9 @@ function JobPostCard({
         <div className="flex flex-wrap gap-2 mb-4">
           {post.location && <span className="flex items-center gap-1.5 text-xs text-gray-500 bg-gray-800 px-2.5 py-1.5 rounded-lg"><MapPin size={11} />{post.location}</span>}
           {post.is_remote && <span className="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-500/10 px-2.5 py-1.5 rounded-lg"><Wifi size={11} />Remote</span>}
-          {post.has_bonus && <span className="flex items-center gap-1.5 text-xs text-amber-400 bg-amber-500/10 px-2.5 py-1.5 rounded-lg font-medium"><DollarSign size={11} />{post.referral_bonus || 'Referral Bonus'}</span>}
+          {post.required_skills?.slice(0, 5).map(skill => (
+            <span key={skill} className="text-xs text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2.5 py-1.5 rounded-lg">{skill}</span>
+          ))}
         </div>
 
         {post.tags?.length > 0 && (

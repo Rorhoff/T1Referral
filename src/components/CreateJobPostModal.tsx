@@ -12,7 +12,7 @@ export default function CreateJobPostModal({ onClose, onCreated }: Props) {
   const { user } = useAuth();
   const [form, setForm] = useState({
     company: '', role_title: '', description: '', location: '',
-    is_remote: false, has_bonus: false, referral_bonus: '', job_url: '', tags: '',
+    is_remote: false, job_url: '', tags: '', required_skills: '',
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -24,6 +24,7 @@ export default function CreateJobPostModal({ onClose, onCreated }: Props) {
     setSubmitting(true);
     try {
       const tags = form.tags.split(',').map(t => t.trim()).filter(Boolean);
+      const required_skills = form.required_skills.split(',').map(s => s.trim()).filter(Boolean).slice(0, 5);
       const { error } = await supabase.from('posts').insert({
         author_id: user.id,
         company: form.company.trim(),
@@ -31,10 +32,9 @@ export default function CreateJobPostModal({ onClose, onCreated }: Props) {
         description: form.description.trim(),
         location: form.location.trim(),
         is_remote: form.is_remote,
-        has_bonus: form.has_bonus,
-        referral_bonus: form.has_bonus ? form.referral_bonus.trim() : '',
         job_url: form.job_url.trim(),
         tags,
+        required_skills,
       });
       if (error) throw error;
       onCreated();
@@ -87,18 +87,10 @@ export default function CreateJobPostModal({ onClose, onCreated }: Props) {
             </button>
           </div>
 
-          <div className="border border-gray-800 rounded-xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <label className="text-sm font-medium text-gray-300">Referral Bonus</label>
-              <button type="button" onClick={() => setForm(f => ({ ...f, has_bonus: !f.has_bonus }))}
-                className={`relative w-10 rounded-full transition-colors ${form.has_bonus ? 'bg-blue-500' : 'bg-gray-700'}`} style={{ height: '22px' }}>
-                <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${form.has_bonus ? 'left-5' : 'left-0.5'}`} />
-              </button>
-            </div>
-            {form.has_bonus && (
-              <input value={form.referral_bonus} onChange={e => setForm(f => ({ ...f, referral_bonus: e.target.value }))} placeholder="e.g. $5,000 paid after 90 days"
-                className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2.5 text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500 transition" />
-            )}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1.5">Required Skills (top 5)</label>
+            <input value={form.required_skills} onChange={e => setForm(f => ({ ...f, required_skills: e.target.value }))} placeholder="React, Python, AWS, SQL, Docker (comma separated)"
+              className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2.5 text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500 transition" />
           </div>
 
           <div>
