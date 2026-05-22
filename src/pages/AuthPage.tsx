@@ -47,6 +47,10 @@ export default function AuthPage() {
             full_name: fullName.trim(),
           });
           if (profileError) throw profileError;
+
+          // Auto-login after registration
+          const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+          if (loginError) throw loginError;
         }
       }
     } catch (err: unknown) {

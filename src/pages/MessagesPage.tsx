@@ -84,6 +84,7 @@ export default function MessagesPage({ initialUserId, onClearInitial }: Props) {
   // Handle initialUserId (open or create conversation)
   useEffect(() => {
     if (!initialUserId || !user) return;
+    let cancelled = false;
 
     (async () => {
       // Check if conversation already exists
@@ -99,13 +100,16 @@ export default function MessagesPage({ initialUserId, onClearInitial }: Props) {
           .eq('user_id', initialUserId)
           .in('conversation_id', myConvs.map(r => r.conversation_id));
 
-        if (shared?.length) {
+        if (shared?.length && !cancelled) {
+          await loadConversations();
           setSelectedConvId(shared[0].conversation_id);
           setMobileView('chat');
           onClearInitial();
           return;
         }
       }
+
+      if (cancelled) return;
 
       // Create new conversation
       const { data: conv } = await supabase
@@ -114,7 +118,7 @@ export default function MessagesPage({ initialUserId, onClearInitial }: Props) {
         .select()
         .single();
 
-      if (conv) {
+      if (conv && !cancelled) {
         await supabase.from('conversation_participants').insert([
           { conversation_id: conv.id, user_id: user.id },
           { conversation_id: conv.id, user_id: initialUserId },
@@ -125,7 +129,9 @@ export default function MessagesPage({ initialUserId, onClearInitial }: Props) {
       }
       onClearInitial();
     })();
-  }, [initialUserId, user, loadConversations, onClearInitial]);
+
+    return () => { cancelled = true; };
+  }, [initialUserId, user?.id]);
 
   useEffect(() => {
     if (!selectedConvId) return;
