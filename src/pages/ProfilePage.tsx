@@ -28,6 +28,8 @@ export default function ProfilePage({ userId, onMessage }: Props) {
   const [saveError, setSaveError] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState('');
+  const [upgradeError, setUpgradeError] = useState('');
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   const [upgradingPostId, setUpgradingPostId] = useState<string | null>(null);
   const [isBlocked, setIsBlocked] = useState(false);
@@ -97,15 +99,16 @@ export default function ProfilePage({ userId, onMessage }: Props) {
     const file = e.target.files?.[0];
     if (!file || !user) return;
     setAvatarUploading(true);
+    setAvatarError('');
     try {
       const { url } = await api.uploadAvatar(file);
-      const publicUrl = `${url}?t=${Date.now()}`;
+      const publicUrl = url.startsWith('data:') ? url : `${url}?t=${Date.now()}`;
       await api.updateProfile({ avatarUrl: publicUrl });
       setForm(f => ({ ...f, avatar_url: publicUrl }));
       setProfile(p => p ? { ...p, avatar_url: publicUrl } : p);
       await refreshProfile();
     } catch (err) {
-      console.error('Avatar upload failed:', err);
+      setAvatarError(err instanceof Error ? err.message : 'Avatar upload failed');
     } finally {
       setAvatarUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -191,6 +194,7 @@ export default function ProfilePage({ userId, onMessage }: Props) {
 
   async function handleUpgradeToPremium(postId: string) {
     setUpgradingPostId(postId);
+    setUpgradeError('');
     try {
       const origin = window.location.origin;
       const json = await api.createPremiumCheckout({
@@ -201,7 +205,7 @@ export default function ProfilePage({ userId, onMessage }: Props) {
       if (!json.url) throw new Error('Failed to create checkout session');
       window.open(json.url, '_blank');
     } catch (err) {
-      console.error('Failed to upgrade post:', err);
+      setUpgradeError(err instanceof Error ? err.message : 'Failed to start checkout');
     } finally {
       setUpgradingPostId(null);
     }
@@ -287,6 +291,9 @@ export default function ProfilePage({ userId, onMessage }: Props) {
                 </>
               )}
             </div>
+            {avatarError && (
+              <p className="text-red-400 text-xs mt-2 max-w-xs">{avatarError}</p>
+            )}
 
             <div className="flex items-center gap-2 mt-2">
               {isOwn ? (
@@ -408,6 +415,9 @@ export default function ProfilePage({ userId, onMessage }: Props) {
             {isOwn ? 'My Seeker Posts' : 'Open to Work'}
             <span className="text-gray-600 font-normal text-base ml-2">({activeSeekerPosts.length})</span>
           </h2>
+          {upgradeError && (
+            <div className="mb-4 bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-lg px-4 py-3">{upgradeError}</div>
+          )}
 
           {activeSeekerPosts.length === 0 ? (
             <div className="bg-gray-900 rounded-2xl border border-gray-800 p-8 text-center">

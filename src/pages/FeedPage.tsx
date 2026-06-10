@@ -10,6 +10,14 @@ import {
 } from 'lucide-react';
 import CreateJobPostModal from '../components/CreateJobPostModal';
 import CreateSeekerPostModal from '../components/CreateSeekerPostModal';
+import { computeMatchScore, isUsaLocation, matchPercent } from '../lib/feedMatch';
+import { US_STATES } from '../lib/usStates';
+
+const FIELDS_OF_WORK = [
+  'Engineering','Design','Product','Marketing','Sales','Finance','Operations',
+  'HR / People','Legal','Data / Analytics','DevOps / Infrastructure','Customer Success',
+  'Healthcare','Education','Real Estate','Consulting','Research','IT','Support','Other',
+];
 
 type FeedTab = 'openings' | 'seekers';
 
@@ -18,25 +26,8 @@ type Props = {
   onMessage: (userId: string) => void;
 };
 
-const US_STATES = [
-  'Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut',
-  'Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa',
-  'Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan',
-  'Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire',
-  'New Jersey','New Mexico','New York','North Carolina','North Dakota','Ohio',
-  'Oklahoma','Oregon','Pennsylvania','Rhode Island','South Carolina','South Dakota',
-  'Tennessee','Texas','Utah','Vermont','Virginia','Washington','West Virginia',
-  'Wisconsin','Wyoming','Remote',
-];
-
-const FIELDS_OF_WORK = [
-  'Engineering','Design','Product','Marketing','Sales','Finance','Operations',
-  'HR / People','Legal','Data / Analytics','DevOps / Infrastructure','Customer Success',
-  'Healthcare','Education','Real Estate','Consulting','Research','IT','Support','Other',
-];
-
 export default function FeedPage({ onViewProfile, onMessage }: Props) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [tab, setTab] = useState<FeedTab>('openings');
   const [posts, setPosts] = useState<(Post & { profiles: Profile })[]>([]);
   const [seekerPosts, setSeekerPosts] = useState<(SeekerPost & { profiles: Profile })[]>([]);
@@ -74,23 +65,45 @@ export default function FeedPage({ onViewProfile, onMessage }: Props) {
   }
 
   function matchesFilters(location: string, field: string, isRemote: boolean) {
+    if (!isUsaLocation(location, isRemote)) return false;
     if (filterRemote && !isRemote) return false;
-    if (filterState && !location.toLowerCase().includes(filterState.toLowerCase()) && !(filterRemote && isRemote)) return false;
+    if (filterState && filterState !== 'Remote (USA)') {
+      if (!location.toLowerCase().includes(filterState.toLowerCase()) && !(filterRemote && isRemote)) return false;
+    }
+    if (filterState === 'Remote (USA)' && !isRemote) return false;
     if (filterField && field.toLowerCase() !== filterField.toLowerCase()) return false;
     return true;
   }
 
-  const filteredJobs = posts.filter(p => {
-    const q = search.toLowerCase();
-    const textMatch = !q || p.company.toLowerCase().includes(q) || p.role_title.toLowerCase().includes(q) || p.profiles?.full_name?.toLowerCase().includes(q);
-    return textMatch && matchesFilters(p.location || '', p.tags?.join(' ') || '', p.is_remote);
-  });
+  function sortByMatch<T extends { is_premium?: boolean }>(
+    items: T[],
+    scoreFor: (item: T) => number,
+  ): T[] {
+    return [...items].sort((a, b) => {
+      const premiumA = Boolean(a.is_premium);
+      const premiumB = Boolean(b.is_premium);
+      if (premiumA !== premiumB) return premiumA ? -1 : 1;
+      return scoreFor(b) - scoreFor(a);
+    });
+  }
 
-  const filteredSeekers = seekerPosts.filter(p => {
-    const q = search.toLowerCase();
-    const textMatch = !q || p.desired_role.toLowerCase().includes(q) || p.profiles?.full_name?.toLowerCase().includes(q) || p.field_of_work?.toLowerCase().includes(q) || (p.skills || []).some(s => s.toLowerCase().includes(q));
-    return textMatch && matchesFilters(p.desired_location || '', p.field_of_work || '', p.open_to_remote);
-  });
+  const filteredJobs = sortByMatch(
+    posts.filter(p => {
+      const q = search.toLowerCase();
+      const textMatch = !q || p.company.toLowerCase().includes(q) || p.role_title.toLowerCase().includes(q) || p.profiles?.full_name?.toLowerCase().includes(q);
+      return textMatch && matchesFilters(p.location || '', p.tags?.join(' ') || '', p.is_remote);
+    }),
+    p => computeMatchScore(profile, p),
+  );
+
+  const filteredSeekers = sortByMatch(
+    seekerPosts.filter(p => {
+      const q = search.toLowerCase();
+      const textMatch = !q || p.desired_role.toLowerCase().includes(q) || p.profiles?.full_name?.toLowerCase().includes(q) || p.field_of_work?.toLowerCase().includes(q) || (p.skills || []).some(s => s.toLowerCase().includes(q)) || p.about.toLowerCase().includes(q);
+      return textMatch && matchesFilters(p.desired_location || '', p.field_of_work || '', p.open_to_remote);
+    }),
+    p => computeMatchScore(profile, p),
+  );
 
   const hasActiveFilters = filterState || filterField || filterRemote;
 
@@ -108,7 +121,7 @@ export default function FeedPage({ onViewProfile, onMessage }: Props) {
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-2xl font-bold text-white">Referral Feed</h1>
-          <p className="text-gray-500 text-sm mt-0.5">Discover opportunities across your network</p>
+          <p className="text-gray-500 text-sm mt-0.5">USA-based opportunities · ranked by skills & interests</p>
         </div>
         <div className="relative group">
           <button className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm transition-colors shadow-lg shadow-blue-500/20">
@@ -246,7 +259,7 @@ export default function FeedPage({ onViewProfile, onMessage }: Props) {
         ) : (
           <div className="space-y-4">
             {filteredJobs.map(post => (
-              <JobPostCard key={post.id} post={post} currentUserId={user?.id} onViewProfile={onViewProfile} onMessage={onMessage} onDeleted={fetchAll} />
+              <JobPostCard key={post.id} post={post} currentUserId={user?.id} onViewProfile={onViewProfile} onMessage={onMessage} onDeleted={fetchAll} matchScore={matchPercent(computeMatchScore(profile, post))} />
             ))}
           </div>
         )
@@ -256,7 +269,7 @@ export default function FeedPage({ onViewProfile, onMessage }: Props) {
         ) : (
           <div className="space-y-4">
             {filteredSeekers.map(post => (
-              <SeekerPostCard key={post.id} post={post} currentUserId={user?.id} onViewProfile={onViewProfile} onDeleted={fetchAll} onBoostDone={fetchAll} />
+              <SeekerPostCard key={post.id} post={post} currentUserId={user?.id} onViewProfile={onViewProfile} onDeleted={fetchAll} onBoostDone={fetchAll} matchScore={matchPercent(computeMatchScore(profile, post))} />
             ))}
           </div>
         )
@@ -271,13 +284,14 @@ export default function FeedPage({ onViewProfile, onMessage }: Props) {
 // ─── Job Post Card ────────────────────────────────────────────────────────────
 
 function JobPostCard({
-  post, currentUserId, onViewProfile, onMessage, onDeleted
+  post, currentUserId, onViewProfile, onMessage, onDeleted, matchScore = 0
 }: {
   post: Post & { profiles: Profile };
   currentUserId?: string;
   onViewProfile: (id: string) => void;
   onMessage: (id: string) => void;
   onDeleted: () => void;
+  matchScore?: number;
 }) {
   const [expanded, setExpanded] = useState(false);
   const p = post.profiles;
@@ -306,6 +320,9 @@ function JobPostCard({
             </div>
           </button>
           <div className="flex items-center gap-2">
+            {matchScore > 0 && (
+              <span className="text-xs font-semibold text-cyan-300 bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 rounded-full">{matchScore}% match</span>
+            )}
             <span className="text-gray-600 text-xs">{timeAgo(post.created_at)}</span>
             {currentUserId === post.author_id && (
               <button onClick={async () => { if (confirm('Delete this post?')) { await api.deletePost(post.id); onDeleted(); } }} className="w-7 h-7 flex items-center justify-center text-gray-600 hover:text-red-400 hover:bg-gray-800 rounded-lg transition">
@@ -366,14 +383,16 @@ function JobPostCard({
 // ─── Seeker Post Card ─────────────────────────────────────────────────────────
 
 function SeekerPostCard({
-  post, currentUserId, onViewProfile, onDeleted, onBoostDone
+  post, currentUserId, onViewProfile, onDeleted, onBoostDone, matchScore = 0
 }: {
   post: SeekerPost & { profiles: Profile };
   currentUserId?: string;
   onViewProfile: (id: string) => void;
   onDeleted: () => void;
   onBoostDone: () => void;
+  matchScore?: number;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const isPremiumActive = post.is_premium && post.premium_expires_at && new Date(post.premium_expires_at) > new Date();
   const p = post.profiles;
 
@@ -411,6 +430,9 @@ function SeekerPostCard({
             </div>
           </button>
           <div className="flex items-center gap-2">
+            {matchScore > 0 && (
+              <span className="text-xs font-semibold text-cyan-300 bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 rounded-full">{matchScore}% match</span>
+            )}
             <span className="text-gray-600 text-xs">{timeAgo(post.created_at)}</span>
             {currentUserId === post.author_id && (
               <button onClick={async () => { if (confirm('Delete this post?')) { await api.deleteSeekerPost(post.id); onDeleted(); } }} className="w-7 h-7 flex items-center justify-center text-gray-600 hover:text-red-400 hover:bg-gray-800 rounded-lg transition">
@@ -422,7 +444,12 @@ function SeekerPostCard({
 
         <h3 className="text-white font-bold text-lg mb-1">{post.headline}</h3>
         <p className="text-emerald-400 font-medium text-sm mb-3">{post.desired_role}{post.field_of_work ? ` · ${post.field_of_work}` : ''}</p>
-        <p className="text-gray-400 text-sm leading-relaxed mb-4 line-clamp-3">{post.about}</p>
+        <p className={`text-gray-400 text-sm leading-relaxed mb-4 ${!expanded && 'line-clamp-3'}`}>{post.about}</p>
+        {post.about.length > 200 && (
+          <button type="button" onClick={() => setExpanded(!expanded)} className="flex items-center gap-1 text-blue-400 text-sm hover:text-blue-300 transition mb-4">
+            {expanded ? 'Show less' : 'Read more'}<ChevronDown size={14} className={`transition-transform ${expanded ? 'rotate-180' : ''}`} />
+          </button>
+        )}
 
         <div className="flex flex-wrap gap-2 mb-4">
           {post.desired_location && <span className="flex items-center gap-1.5 text-xs text-gray-500 bg-gray-800 px-2.5 py-1.5 rounded-lg"><MapPin size={11} />{post.desired_location}</span>}

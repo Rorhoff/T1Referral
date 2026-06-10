@@ -151,9 +151,9 @@ export default function CreateSeekerPostModal({ onClose, onCreated }: Props) {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1.5">Desired Location</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1.5">Desired Location (USA)</label>
                   <input value={form.desired_location} onChange={e => setForm(f => ({ ...f, desired_location: e.target.value }))}
-                    placeholder="e.g. Austin, TX"
+                    placeholder="e.g. Remote, UT or Austin, TX"
                     className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2.5 text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500 transition" />
                 </div>
                 <div>
