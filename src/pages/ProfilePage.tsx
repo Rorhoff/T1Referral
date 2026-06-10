@@ -125,7 +125,7 @@ export default function ProfilePage({ userId, onMessage }: Props) {
         role: form.role.trim(),
         location: form.location.trim(),
         linkedinUrl: form.linkedin_url.trim(),
-        yearsExperience: parseInt(form.years_experience) || 0,
+        yearsExperience: parseFloat(form.years_experience) || 0,
         skills,
       });
       await Promise.all([loadProfile(), refreshProfile()]);
@@ -608,7 +608,7 @@ export default function ProfilePage({ userId, onMessage }: Props) {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1.5">Years Experience</label>
-                  <input type="number" min="0" max="50" value={form.years_experience} onChange={e => setForm(f => ({ ...f, years_experience: e.target.value }))}
+                  <input type="number" min="0" max="50" step="0.1" value={form.years_experience} onChange={e => setForm(f => ({ ...f, years_experience: e.target.value }))}
                     placeholder="5"
                     className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-600 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition" />
                 </div>

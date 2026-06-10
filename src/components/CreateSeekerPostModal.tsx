@@ -62,7 +62,7 @@ export default function CreateSeekerPostModal({ onClose, onCreated }: Props) {
         openToRemote: form.open_to_remote,
         fieldOfWork: form.field_of_work,
         skills,
-        experienceYears: parseInt(form.experience_years) || 0,
+        experienceYears: parseFloat(form.experience_years) || 0,
         resumeUrl: form.resume_url.trim(),
         portfolioUrl: form.portfolio_url.trim(),
         availability: form.availability,
@@ -158,7 +158,7 @@ export default function CreateSeekerPostModal({ onClose, onCreated }: Props) {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1.5">Years Experience</label>
-                  <input type="number" min="0" max="50" value={form.experience_years}
+                  <input type="number" min="0" max="50" step="0.1" value={form.experience_years}
                     onChange={e => setForm(f => ({ ...f, experience_years: e.target.value }))} placeholder="5"
                     className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2.5 text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500 transition" />
                 </div>
@@ -192,9 +192,9 @@ export default function CreateSeekerPostModal({ onClose, onCreated }: Props) {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1.5">Resume URL</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1.5">LinkedIn Profile</label>
                   <input value={form.resume_url} onChange={e => setForm(f => ({ ...f, resume_url: e.target.value }))}
-                    placeholder="https://..." type="url"
+                    placeholder="https://linkedin.com/in/yourname" type="url"
                     className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2.5 text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500 transition" />
                 </div>
                 <div>

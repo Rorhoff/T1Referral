@@ -443,7 +443,7 @@ function SeekerPostCard({
         <div className="flex gap-2">
           {post.resume_url && (
             <a href={post.resume_url} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 hover:border-emerald-500/40 text-emerald-400 font-medium rounded-xl py-2.5 text-sm transition-all">
-              <ExternalLink size={13} />View Resume
+              <ExternalLink size={13} />LinkedIn Profile
             </a>
           )}
           <button onClick={() => onViewProfile(post.author_id)} className="flex-1 flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium rounded-xl py-2.5 text-sm transition">
