@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '../lib/supabase';
+import * as api from '../lib/api';
 import { Briefcase, Users, MessageSquare, TrendingUp } from 'lucide-react';
 
 export default function AuthPage() {
@@ -18,8 +18,8 @@ export default function AuthPage() {
 
     try {
       if (mode === 'login') {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        await api.login(email, password);
+        window.location.reload();
       } else {
         if (!username.trim() || !fullName.trim()) {
           throw new Error('Please fill in all fields.');
@@ -28,30 +28,13 @@ export default function AuthPage() {
         if (usernameClean.length < 3) {
           throw new Error('Username must be at least 3 characters (letters, numbers, underscores).');
         }
-
-        // Check username availability
-        const { data: existing } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('username', usernameClean)
-          .maybeSingle();
-        if (existing) throw new Error('Username is already taken.');
-
-        const { data, error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-
-        if (data.user) {
-          const { error: profileError } = await supabase.from('profiles').insert({
-            id: data.user.id,
-            username: usernameClean,
-            full_name: fullName.trim(),
-          });
-          if (profileError) throw profileError;
-
-          // Auto-login after registration
-          const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
-          if (loginError) throw loginError;
-        }
+        await api.register({
+          email,
+          password,
+          username: usernameClean,
+          fullName: fullName.trim(),
+        });
+        window.location.reload();
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -69,7 +52,6 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen bg-gray-950 flex">
-      {/* Left panel */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 bg-gradient-to-br from-gray-900 via-gray-950 to-black relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-20 left-20 w-64 h-64 bg-blue-500 rounded-full blur-3xl" />
@@ -81,7 +63,7 @@ export default function AuthPage() {
             <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center">
               <span className="text-white font-black text-lg">T1</span>
             </div>
-            <span className="text-white font-bold text-2xl tracking-tight">T1Referral</span>
+            <span className="text-white font-bold text-2xl tracking-tight">T1Referrall</span>
           </div>
         </div>
 
@@ -110,18 +92,17 @@ export default function AuthPage() {
         </div>
 
         <div className="relative z-10 text-gray-600 text-sm">
-          © 2026 T1Referral. All rights reserved.
+          © 2026 T1Referrall. All rights reserved.
         </div>
       </div>
 
-      {/* Right panel */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6">
         <div className="w-full max-w-md">
           <div className="lg:hidden flex items-center justify-center gap-3 mb-10">
             <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center">
               <span className="text-white font-black text-lg">T1</span>
             </div>
-            <span className="text-white font-bold text-2xl tracking-tight">T1Referral</span>
+            <span className="text-white font-bold text-2xl tracking-tight">T1Referrall</span>
           </div>
 
           <div className="bg-gray-900 rounded-2xl border border-gray-800 p-8 shadow-2xl">
@@ -131,14 +112,14 @@ export default function AuthPage() {
               </h2>
               <p className="text-gray-500 text-sm">
                 {mode === 'login'
-                  ? 'Sign in to your T1Referral account'
+                  ? 'Sign in to your T1Referrall account'
                   : 'Join thousands of professionals sharing referrals'}
               </p>
             </div>
 
-            {/* Tab switcher */}
             <div className="flex rounded-lg bg-gray-800 p-1 mb-6">
               <button
+                type="button"
                 onClick={() => { setMode('login'); setError(''); }}
                 className={`flex-1 py-2 rounded-md text-sm font-medium transition-all ${
                   mode === 'login' ? 'bg-blue-500 text-white shadow' : 'text-gray-400 hover:text-white'
@@ -147,6 +128,7 @@ export default function AuthPage() {
                 Sign In
               </button>
               <button
+                type="button"
                 onClick={() => { setMode('register'); setError(''); }}
                 className={`flex-1 py-2 rounded-md text-sm font-medium transition-all ${
                   mode === 'register' ? 'bg-blue-500 text-white shadow' : 'text-gray-400 hover:text-white'
@@ -210,7 +192,7 @@ export default function AuthPage() {
                   onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  minLength={6}
+                  minLength={8}
                   className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-3 text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
                 />
               </div>

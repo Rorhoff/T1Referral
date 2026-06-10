@@ -17,13 +17,13 @@ export default function PrivacyPage({ onBack }: Props) {
 
       <div className="bg-gray-900 rounded-2xl border border-gray-800 p-8 md:p-10">
         <h1 className="text-2xl font-bold text-white mb-1">Privacy Policy</h1>
-        <p className="text-gray-500 text-sm mb-8">RedA1, LLC dba T1Referral — Effective Date: May 22, 2026</p>
+        <p className="text-gray-500 text-sm mb-8">RedA1, LLC dba T1Referrall — Effective Date: May 22, 2026</p>
 
         <div className="prose prose-invert prose-sm max-w-none space-y-6 text-gray-300 leading-relaxed">
           <p>
             RedA1, LLC ("Company," "we," "us," or "our") respects your privacy. This Privacy Policy
             explains how we collect, use, disclose, and protect information when you access or use
-            T1Referral (the "Service"). The Service is intended for Users located in the United States. By
+            T1Referrall (the "Service"). The Service is intended for Users located in the United States. By
             using the Service, you acknowledge that you have read and understood this Privacy Policy.
           </p>
 
@@ -178,7 +178,7 @@ export default function PrivacyPage({ onBack }: Props) {
           <p>
             If you have questions, concerns, or requests regarding this Privacy Policy or our privacy
             practices, contact us at:<br />
-            <strong className="text-white">RedA1, LLC dba T1Referral</strong><br />
+            <strong className="text-white">RedA1, LLC dba T1Referrall</strong><br />
             Email: legal@RedA1.com
           </p>
         </div>

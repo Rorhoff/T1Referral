@@ -1,10 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
 export type Profile = {
   id: string;
   username: string;
@@ -20,6 +13,7 @@ export type Profile = {
   is_suspended: boolean;
   created_at: string;
   updated_at: string;
+  email?: string;
 };
 
 export type Post = {
@@ -55,8 +49,8 @@ export type Conversation = {
   id: string;
   created_at: string;
   updated_at: string;
-  participants?: Profile[];
-  last_message?: Message;
+  otherUser?: Profile;
+  lastMessage?: Message;
 };
 
 export type Message = {
@@ -90,15 +84,6 @@ export type SeekerPost = {
   profiles?: Profile;
 };
 
-export type PremiumPurchase = {
-  id: string;
-  user_id: string;
-  seeker_post_id: string | null;
-  amount_cents: number;
-  purchase_number: number;
-  created_at: string;
-};
-
 export const AVAILABILITY_LABELS: Record<string, string> = {
   immediately: 'Available Now',
   '2weeks': '2 Weeks Notice',
@@ -110,15 +95,3 @@ export const BASE_PREMIUM_PRICE_CENTS = 999;
 export const PREMIUM_PRICE_INCREMENT_CENTS = 500;
 export const PREMIUM_PRICE_MAX_CENTS = 9999;
 export const PREMIUM_DURATION_DAYS = 30;
-
-export async function getCurrentPremiumPriceCents(): Promise<number> {
-  const monthAgo = new Date();
-  monthAgo.setMonth(monthAgo.getMonth() - 1);
-  const { count } = await supabase
-    .from('premium_purchases')
-    .select('*', { count: 'exact', head: true })
-    .gte('created_at', monthAgo.toISOString());
-  const totalThisMonth = count ?? 0;
-  const price = BASE_PREMIUM_PRICE_CENTS + PREMIUM_PRICE_INCREMENT_CENTS * totalThisMonth;
-  return Math.min(price, PREMIUM_PRICE_MAX_CENTS);
-}

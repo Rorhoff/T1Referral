@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { supabase, Post, Profile, SeekerPost, AVAILABILITY_LABELS } from '../lib/supabase';
+import * as api from '../lib/api';
+import type { Post, Profile, SeekerPost } from '../lib/types';
+import { AVAILABILITY_LABELS } from '../lib/types';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Plus, Briefcase, MapPin, ExternalLink, MessageSquare,
@@ -62,12 +64,9 @@ export default function FeedPage({ onViewProfile, onMessage }: Props) {
 
   async function fetchAll() {
     setLoading(true);
-    const [{ data: jobData }, { data: seekerData }] = await Promise.all([
-      supabase.from('posts').select('*, profiles(*)').order('created_at', { ascending: false }),
-      supabase.from('seeker_posts').select('*, profiles(*)')
-        .order('is_premium', { ascending: false })
-        .order('premium_order', { ascending: false })
-        .order('created_at', { ascending: false }),
+    const [jobData, seekerData] = await Promise.all([
+      api.listPosts(),
+      api.listSeekerPosts(),
     ]);
     setPosts((jobData as (Post & { profiles: Profile })[]) || []);
     setSeekerPosts((seekerData as (SeekerPost & { profiles: Profile })[]) || []);
@@ -309,7 +308,7 @@ function JobPostCard({
           <div className="flex items-center gap-2">
             <span className="text-gray-600 text-xs">{timeAgo(post.created_at)}</span>
             {currentUserId === post.author_id && (
-              <button onClick={async () => { if (confirm('Delete this post?')) { await supabase.from('posts').delete().eq('id', post.id); onDeleted(); } }} className="w-7 h-7 flex items-center justify-center text-gray-600 hover:text-red-400 hover:bg-gray-800 rounded-lg transition">
+              <button onClick={async () => { if (confirm('Delete this post?')) { await api.deletePost(post.id); onDeleted(); } }} className="w-7 h-7 flex items-center justify-center text-gray-600 hover:text-red-400 hover:bg-gray-800 rounded-lg transition">
                 <X size={14} />
               </button>
             )}
@@ -414,7 +413,7 @@ function SeekerPostCard({
           <div className="flex items-center gap-2">
             <span className="text-gray-600 text-xs">{timeAgo(post.created_at)}</span>
             {currentUserId === post.author_id && (
-              <button onClick={async () => { if (confirm('Delete this post?')) { await supabase.from('seeker_posts').delete().eq('id', post.id); onDeleted(); } }} className="w-7 h-7 flex items-center justify-center text-gray-600 hover:text-red-400 hover:bg-gray-800 rounded-lg transition">
+              <button onClick={async () => { if (confirm('Delete this post?')) { await api.deleteSeekerPost(post.id); onDeleted(); } }} className="w-7 h-7 flex items-center justify-center text-gray-600 hover:text-red-400 hover:bg-gray-800 rounded-lg transition">
                 <X size={14} />
               </button>
             )}

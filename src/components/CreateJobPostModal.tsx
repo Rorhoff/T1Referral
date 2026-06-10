@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '../lib/supabase';
+import * as api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { X, Wifi } from 'lucide-react';
 
@@ -25,18 +25,16 @@ export default function CreateJobPostModal({ onClose, onCreated }: Props) {
     try {
       const tags = form.tags.split(',').map(t => t.trim()).filter(Boolean);
       const required_skills = form.required_skills.split(',').map(s => s.trim()).filter(Boolean).slice(0, 5);
-      const { error } = await supabase.from('posts').insert({
-        author_id: user.id,
+      await api.createPost({
         company: form.company.trim(),
-        role_title: form.role_title.trim(),
+        roleTitle: form.role_title.trim(),
         description: form.description.trim(),
         location: form.location.trim(),
-        is_remote: form.is_remote,
-        job_url: form.job_url.trim(),
+        isRemote: form.is_remote,
+        jobUrl: form.job_url.trim(),
         tags,
-        required_skills,
+        requiredSkills: required_skills,
       });
-      if (error) throw error;
       onCreated();
       onClose();
     } catch (err: unknown) {

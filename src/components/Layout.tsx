@@ -35,7 +35,7 @@ export default function Layout({ children, currentPage, onNavigate }: Props) {
             <div className="w-9 h-9 bg-blue-500 rounded-xl flex items-center justify-center group-hover:bg-blue-400 transition-colors">
               <span className="text-white font-black text-base">T1</span>
             </div>
-            <span className="text-white font-bold text-lg tracking-tight hidden sm:block">T1Referral</span>
+            <span className="text-white font-bold text-lg tracking-tight hidden sm:block">T1Referrall</span>
           </button>
 
           {/* Desktop nav */}
@@ -137,7 +137,7 @@ export default function Layout({ children, currentPage, onNavigate }: Props) {
         {/* Footer */}
         <footer className="border-t border-gray-800 mt-8 pb-24 md:pb-8">
           <div className="max-w-6xl mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-gray-600 text-xs">&copy; 2026 RedA1, LLC dba T1Referral. All rights reserved.</p>
+            <p className="text-gray-600 text-xs">&copy; 2026 RedA1, LLC dba T1Referrall. All rights reserved.</p>
             <div className="flex items-center gap-4">
               <button
                 onClick={() => onNavigate('terms')}

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { supabase } from './lib/supabase';
 import AuthPage from './pages/AuthPage';
 import Layout from './components/Layout';
 import FeedPage from './pages/FeedPage';
@@ -13,7 +12,7 @@ import PrivacyPage from './pages/PrivacyPage';
 type Page = 'feed' | 'network' | 'messages' | 'profile' | 'terms' | 'privacy';
 
 function AppInner() {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, signOut } = useAuth();
   const [page, setPage] = useState<Page>('feed');
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const [messageUserId, setMessageUserId] = useState<string | null>(null);
@@ -49,7 +48,7 @@ function AppInner() {
             This decision is final and not subject to appeal.
           </p>
           <button
-            onClick={() => supabase.auth.signOut()}
+            onClick={() => signOut()}
             className="bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium rounded-xl px-6 py-2.5 text-sm transition"
           >
             Sign Out

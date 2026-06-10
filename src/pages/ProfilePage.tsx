@@ -1,12 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { supabase, Profile, Post, Connection, SeekerPost, AVAILABILITY_LABELS } from '../lib/supabase';
+import * as api from '../lib/api';
+import type { Profile, Post, Connection, SeekerPost } from '../lib/types';
+import { AVAILABILITY_LABELS } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
-import {
-  CreditCard as Edit2, Save, X, MapPin, Briefcase, Link, ShieldBan,
-  UserPlus, UserCheck, MessageSquare, Building, Tag, Wifi, ExternalLink,
-  Star, Camera, Loader, Trash2, Crown,
-} from 'lucide-react';
-import { getCurrentPremiumPriceCents } from '../lib/supabase';
 
 type Props = {
   userId: string;
@@ -51,28 +47,29 @@ export default function ProfilePage({ userId, onMessage }: Props) {
 
   async function loadProfile() {
     setLoading(true);
-    const [{ data: p }, { data: userPosts }, { data: userSeekerPosts }, { data: conn }, { data: blockData }] = await Promise.all([
-      supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
-      supabase.from('posts').select('*').eq('author_id', userId).order('created_at', { ascending: false }),
-      supabase.from('seeker_posts').select('*').eq('author_id', userId).order('created_at', { ascending: false }),
-      user && !isOwn
-        ? supabase.from('connections').select('*')
-            .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
-            .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`)
-            .maybeSingle()
-        : Promise.resolve({ data: null }),
-      user && !isOwn
-        ? supabase.from('user_blocks').select('id').eq('blocker_id', user.id).eq('blocked_id', userId).maybeSingle()
-        : Promise.resolve({ data: null }),
-    ]);
+    try {
+      const p = await api.getProfile(userId);
+      const [allPosts, allSeeker, allConns, blockCheck] = await Promise.all([
+        api.listPosts(),
+        api.listSeekerPosts(),
+        user && !isOwn ? api.listConnections() : Promise.resolve([] as Connection[]),
+        user && !isOwn ? api.checkBlock(userId) : Promise.resolve({ blocked: false, id: null }),
+      ]);
+      const userPosts = allPosts.filter(x => x.author_id === userId);
+      const userSeekerPosts = allSeeker.filter(x => x.author_id === userId);
+      const conn = user && !isOwn
+        ? allConns.find(c =>
+            (c.requester_id === user.id || c.addressee_id === user.id) &&
+            (c.requester_id === userId || c.addressee_id === userId),
+          ) ?? null
+        : null;
 
-    setProfile(p);
-    setPosts(userPosts || []);
-    setSeekerPosts(userSeekerPosts || []);
-    setConnection(conn);
-    setIsBlocked(!!blockData);
+      setProfile(p);
+      setPosts(userPosts);
+      setSeekerPosts(userSeekerPosts);
+      setConnection(conn);
+      setIsBlocked(blockCheck.blocked);
 
-    if (p) {
       setForm({
         full_name: p.full_name || '',
         bio: p.bio || '',
@@ -84,8 +81,11 @@ export default function ProfilePage({ userId, onMessage }: Props) {
         skills: (p.skills || []).join(', '),
         avatar_url: p.avatar_url || '',
       });
+    } catch (err) {
+      console.error('Failed to load profile:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -93,22 +93,9 @@ export default function ProfilePage({ userId, onMessage }: Props) {
     if (!file || !user) return;
     setAvatarUploading(true);
     try {
-      const ext = file.name.split('.').pop();
-      const path = `${user.id}/avatar.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(path, file, { upsert: true });
-      if (uploadError) throw uploadError;
-
-      const { data } = supabase.storage.from('avatars').getPublicUrl(path);
-      const publicUrl = `${data.publicUrl}?t=${Date.now()}`;
-
-      const { error: updateError } = await supabase.from('profiles').update({
-        avatar_url: publicUrl,
-        updated_at: new Date().toISOString(),
-      }).eq('id', user.id);
-      if (updateError) throw updateError;
-
+      const { url } = await api.uploadAvatar(file);
+      const publicUrl = `${url}?t=${Date.now()}`;
+      await api.updateProfile({ avatarUrl: publicUrl });
       setForm(f => ({ ...f, avatar_url: publicUrl }));
       setProfile(p => p ? { ...p, avatar_url: publicUrl } : p);
       await refreshProfile();
@@ -126,18 +113,16 @@ export default function ProfilePage({ userId, onMessage }: Props) {
     setSaveError('');
     try {
       const skills = form.skills.split(',').map(s => s.trim()).filter(Boolean);
-      const { error } = await supabase.from('profiles').update({
-        full_name: form.full_name.trim(),
+      await api.updateProfile({
+        fullName: form.full_name.trim(),
         bio: form.bio.trim(),
         company: form.company.trim(),
         role: form.role.trim(),
         location: form.location.trim(),
-        linkedin_url: form.linkedin_url.trim(),
-        years_experience: parseInt(form.years_experience) || 0,
+        linkedinUrl: form.linkedin_url.trim(),
+        yearsExperience: parseInt(form.years_experience) || 0,
         skills,
-        updated_at: new Date().toISOString(),
-      }).eq('id', user.id);
-      if (error) throw error;
+      });
       await Promise.all([loadProfile(), refreshProfile()]);
       setEditing(false);
     } catch (err: unknown) {
@@ -151,9 +136,9 @@ export default function ProfilePage({ userId, onMessage }: Props) {
     if (!user) return;
     setActionLoading(true);
     if (!connection) {
-      await supabase.from('connections').insert({ requester_id: user.id, addressee_id: userId });
+      await api.createConnection(userId);
     } else if (connection.status === 'accepted') {
-      await supabase.from('connections').delete().eq('id', connection.id);
+      await api.deleteConnection(connection.id);
     }
     await loadProfile();
     setActionLoading(false);
@@ -163,14 +148,14 @@ export default function ProfilePage({ userId, onMessage }: Props) {
     if (!user) return;
     setBlockLoading(true);
     if (isBlocked) {
-      await supabase.from('user_blocks').delete().eq('blocker_id', user.id).eq('blocked_id', userId);
+      await api.deleteBlock(userId);
       setIsBlocked(false);
     } else {
       if (!confirm('Block this user? They will not be notified, but you will no longer see their content.')) {
         setBlockLoading(false);
         return;
       }
-      await supabase.from('user_blocks').insert({ blocker_id: user.id, blocked_id: userId });
+      await api.createBlock(userId);
       setIsBlocked(true);
     }
     setBlockLoading(false);
@@ -190,8 +175,7 @@ export default function ProfilePage({ userId, onMessage }: Props) {
     if (!confirm('Are you sure you want to delete this seeker post? This cannot be undone.')) return;
     setDeletingPostId(postId);
     try {
-      const { error } = await supabase.from('seeker_posts').delete().eq('id', postId).eq('author_id', user!.id);
-      if (error) throw error;
+      await api.deleteSeekerPost(postId);
       setSeekerPosts(prev => prev.filter(p => p.id !== postId));
     } catch (err) {
       console.error('Failed to delete seeker post:', err);
@@ -203,38 +187,13 @@ export default function ProfilePage({ userId, onMessage }: Props) {
   async function handleUpgradeToPremium(postId: string) {
     setUpgradingPostId(postId);
     try {
-      const priceCents = await getCurrentPremiumPriceCents();
-      const { count } = await supabase
-        .from('premium_purchases')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user!.id);
-      const purchaseNumber = (count ?? 0) + 1;
-
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
       const origin = window.location.origin;
-
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-            'Apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-          },
-          body: JSON.stringify({
-            seeker_post_id: postId,
-            amount_cents: priceCents,
-            purchase_number: purchaseNumber,
-            success_url: `${origin}/?featured=1`,
-            cancel_url: `${origin}/`,
-          }),
-        }
-      );
-
-      const json = await res.json();
-      if (!res.ok || !json.url) throw new Error(json.error ?? 'Failed to create checkout');
+      const json = await api.createPremiumCheckout({
+        seekerPostId: postId,
+        successUrl: `${origin}/t1-referrall/?featured=1`,
+        cancelUrl: `${origin}/t1-referrall/`,
+      });
+      if (!json.url) throw new Error('Failed to create checkout session');
       window.open(json.url, '_blank');
     } catch (err) {
       console.error('Failed to upgrade post:', err);

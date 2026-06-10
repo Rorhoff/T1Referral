@@ -1,5 +1,5 @@
 /*
-  # T1Referral Schema
+  # T1Referrall Schema
 
   1. New Tables
     - `profiles` - User profiles with bio, company, role, experience, avatar

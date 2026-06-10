@@ -17,12 +17,12 @@ export default function TermsPage({ onBack }: Props) {
 
       <div className="bg-gray-900 rounded-2xl border border-gray-800 p-8 md:p-10">
         <h1 className="text-2xl font-bold text-white mb-1">Terms of Service</h1>
-        <p className="text-gray-500 text-sm mb-8">RedA1, LLC dba T1Referral — Effective Date: May 22, 2026</p>
+        <p className="text-gray-500 text-sm mb-8">RedA1, LLC dba T1Referrall — Effective Date: May 22, 2026</p>
 
         <div className="prose prose-invert prose-sm max-w-none space-y-6 text-gray-300 leading-relaxed">
           <p>
-            Welcome to T1Referral, a service operated by RedA1, LLC ("Company," "we," "us," or "our").
-            These Terms of Service (the "Terms") govern your access to and use of the T1Referral website,
+            Welcome to T1Referrall, a service operated by RedA1, LLC ("Company," "we," "us," or "our").
+            These Terms of Service (the "Terms") govern your access to and use of the T1Referrall website,
             mobile applications, and related services (collectively, the "Service"). The Service is offered to
             Users located in the United States. By creating an account, accessing, or using the Service, you
             ("you," "User," or "Member") agree to be bound by these Terms. If you do not agree, do not use
@@ -38,7 +38,7 @@ export default function TermsPage({ onBack }: Props) {
 
           <h2 className="text-lg font-semibold text-white">1. About the Service</h2>
           <p>
-            T1Referral is an online platform that helps Users build professional networks, discover career
+            T1Referrall is an online platform that helps Users build professional networks, discover career
             opportunities, connect with potential collaborators and friends, and identify referral opportunities
             at participating companies. The Service includes profile creation, messaging, search and
             discovery features, and referral facilitation tools.
@@ -284,7 +284,7 @@ export default function TermsPage({ onBack }: Props) {
           <h2 className="text-lg font-semibold text-white">20. Contact Us</h2>
           <p>
             If you have any questions about these Terms, please contact us at:<br />
-            <strong className="text-white">RedA1, LLC dba T1Referral</strong><br />
+            <strong className="text-white">RedA1, LLC dba T1Referrall</strong><br />
             Email: legal@RedA1.com
           </p>
         </div>

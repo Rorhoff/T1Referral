@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase, Profile, Connection } from '../lib/supabase';
+import * as api from '../lib/api';
+import type { Profile, Connection } from '../lib/types';
 import { useAuth } from '../contexts/AuthContext';
 import { UserPlus, UserCheck, UserX, Search, Users, Clock, MapPin, Briefcase } from 'lucide-react';
 
@@ -24,24 +25,23 @@ export default function NetworkPage({ onViewProfile, onMessage }: Props) {
     if (!user) return;
     setLoading(true);
 
-    const [{ data: allProfiles }, { data: conns }] = await Promise.all([
-      supabase.from('profiles').select('*').neq('id', user.id),
-      supabase.from('connections').select('*, requester:requester_id(*)' +
-        ', addressee:addressee_id(*)').or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`),
+    const [allProfiles, allConns] = await Promise.all([
+      api.listProfiles(),
+      api.listConnections(),
     ]);
 
-    const allConns = (conns || []) as Connection[];
-    setConnections(allConns.filter(c => c.status === 'accepted'));
-    setPending(allConns.filter(c => c.status === 'pending'));
+    const allConnsTyped = allConns as Connection[];
+    setConnections(allConnsTyped.filter(c => c.status === 'accepted'));
+    setPending(allConnsTyped.filter(c => c.status === 'pending'));
 
-    const connectedIds = new Set(allConns.filter(c => c.status === 'accepted').map(c =>
+    const connectedIds = new Set(allConnsTyped.filter(c => c.status === 'accepted').map(c =>
       c.requester_id === user.id ? c.addressee_id : c.requester_id
     ));
-    const pendingIds = new Set(allConns.map(c =>
+    const pendingIds = new Set(allConnsTyped.map(c =>
       c.requester_id === user.id ? c.addressee_id : c.requester_id
     ));
 
-    const profiles = (allProfiles || []) as Profile[];
+    const profiles = allProfiles as Profile[];
     setPeople(profiles.filter(p => !connectedIds.has(p.id) && !pendingIds.has(p.id)));
 
     setLoading(false);
@@ -54,21 +54,21 @@ export default function NetworkPage({ onViewProfile, onMessage }: Props) {
   async function sendRequest(addresseeId: string) {
     if (!user) return;
     setActionLoading(addresseeId);
-    await supabase.from('connections').insert({ requester_id: user.id, addressee_id: addresseeId });
+    await api.createConnection(addresseeId);
     await loadAll();
     setActionLoading(null);
   }
 
   async function respondRequest(connId: string, status: 'accepted' | 'declined') {
     setActionLoading(connId);
-    await supabase.from('connections').update({ status }).eq('id', connId);
+    await api.updateConnection(connId, status);
     await loadAll();
     setActionLoading(null);
   }
 
   async function removeConnection(connId: string) {
     setActionLoading(connId);
-    await supabase.from('connections').delete().eq('id', connId);
+    await api.deleteConnection(connId);
     await loadAll();
     setActionLoading(null);
   }

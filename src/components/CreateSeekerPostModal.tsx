@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { supabase, getCurrentPremiumPriceCents, PREMIUM_DURATION_DAYS } from '../lib/supabase';
+import * as api from '../lib/api';
+import { getCurrentPremiumPriceCents, PREMIUM_DURATION_DAYS } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { X, Wifi, Star, ChevronRight } from 'lucide-react';
 
@@ -53,29 +54,23 @@ export default function CreateSeekerPostModal({ onClose, onCreated }: Props) {
     setSubmitting(true);
     try {
       const skills = form.skills.split(',').map(s => s.trim()).filter(Boolean);
-      const { data, error } = await supabase.from('seeker_posts').insert({
-        author_id: user.id,
+      const data = await api.createSeekerPost({
         headline: form.headline.trim(),
         about: form.about.trim(),
-        desired_role: form.desired_role.trim(),
-        desired_location: form.desired_location.trim(),
-        open_to_remote: form.open_to_remote,
-        field_of_work: form.field_of_work,
+        desiredRole: form.desired_role.trim(),
+        desiredLocation: form.desired_location.trim(),
+        openToRemote: form.open_to_remote,
+        fieldOfWork: form.field_of_work,
         skills,
-        experience_years: parseInt(form.experience_years) || 0,
-        resume_url: form.resume_url.trim(),
-        portfolio_url: form.portfolio_url.trim(),
+        experienceYears: parseInt(form.experience_years) || 0,
+        resumeUrl: form.resume_url.trim(),
+        portfolioUrl: form.portfolio_url.trim(),
         availability: form.availability,
-      }).select().single();
-      if (error) throw error;
+      });
 
-      // Load premium pricing and go to upsell step
-      const [price, { count }] = await Promise.all([
-        getCurrentPremiumPriceCents(),
-        supabase.from('premium_purchases').select('*', { count: 'exact', head: true }),
-      ]);
+      const price = await getCurrentPremiumPriceCents();
       setPremiumPrice(price);
-      setPurchaseNumber((count ?? 0) + 1);
+      setPurchaseNumber(1);
       setCreatedPostId(data.id);
       setStep('premium');
     } catch (err: unknown) {
@@ -90,32 +85,13 @@ export default function CreateSeekerPostModal({ onClose, onCreated }: Props) {
     setSubmitting(true);
     setError('');
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-
       const origin = window.location.origin;
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-            'Apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-          },
-          body: JSON.stringify({
-            seeker_post_id: createdPostId,
-            amount_cents: premiumPrice,
-            purchase_number: purchaseNumber,
-            success_url: `${origin}/?featured=1`,
-            cancel_url: `${origin}/`,
-          }),
-        }
-      );
-
-      const json = await res.json();
-      if (!res.ok || !json.url) throw new Error(json.error ?? 'Failed to create checkout session');
-
+      const json = await api.createPremiumCheckout({
+        seekerPostId: createdPostId,
+        successUrl: `${origin}/t1-referrall/?featured=1`,
+        cancelUrl: `${origin}/t1-referrall/`,
+      });
+      if (!json.url) throw new Error('Failed to create checkout session');
       window.open(json.url, '_blank');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to start checkout');
