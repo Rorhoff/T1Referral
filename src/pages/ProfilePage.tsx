@@ -1,4 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
+import {
+  Briefcase, Building, Camera, Crown, Edit2, ExternalLink, Link, Loader,
+  MapPin, MessageSquare, Save, ShieldBan, Star, Tag, Trash2, UserCheck,
+  UserPlus, Wifi, X,
+} from 'lucide-react';
 import * as api from '../lib/api';
 import type { Profile, Post, Connection, SeekerPost } from '../lib/types';
 import { AVAILABILITY_LABELS } from '../lib/api';
